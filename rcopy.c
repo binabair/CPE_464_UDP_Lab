@@ -18,8 +18,10 @@
 #include "gethostbyname.h"
 #include "networks.h"
 #include "safeUtil.h"
+#include "createPDU.h"
 
 #define MAXBUF 80
+#define MAXPDU 1500
 
 void talkToServer(int socketNum, struct sockaddr_in6 * server);
 int readFromStdin(char * buffer);
@@ -36,7 +38,7 @@ int main (int argc, char *argv[])
 
 	errorRate = atof(argv[1]);
 	
-	socketNum = setupUdpClientToServer(&server, argv[1], portNumber);
+	socketNum = setupUdpClientToServer(&server, argv[2], portNumber);
 	
 	talkToServer(socketNum, &server);
 	
@@ -51,22 +53,34 @@ void talkToServer(int socketNum, struct sockaddr_in6 * server)
 	char * ipString = NULL;
 	int dataLen = 0; 
 	char buffer[MAXBUF+1];
+
+	int pduLen = 0;
+	uint8_t pduBuffer[MAXPDU];
+	uint32_t seqNum = 0;
+	uint8_t flag = 1;
 	
 	buffer[0] = '\0';
 	while (buffer[0] != '.')
 	{
 		dataLen = readFromStdin(buffer);
 
-		printf("Sending: %s with len: %d\n", buffer,dataLen);
+		pduLen = createPDU(pduBuffer, seqNum, flag, (uint8_t *)buffer, dataLen);
+        seqNum++;
+
+		printf("Sending PDU:\n");
+        printPDU(pduBuffer, pduLen);
 	
-		safeSendto(socketNum, buffer, dataLen, 0, (struct sockaddr *) server, serverAddrLen);
+		safeSendto(socketNum, pduBuffer, pduLen, 0, (struct sockaddr *) server, serverAddrLen);
 		
-		safeRecvfrom(socketNum, buffer, MAXBUF, 0, (struct sockaddr *) server, &serverAddrLen);
-		
-		// print out bytes received
+		pduLen = safeRecvfrom(socketNum, pduBuffer, MAXPDU, 0, (struct sockaddr *) server, &serverAddrLen);
+
 		ipString = ipAddressToString(server);
-		printf("Server with ip: %s and port %d said it received %s\n", ipString, ntohs(server->sin6_port), buffer);
-	      
+		
+        printf("Server with ip: %s and port %d sent back:\n",
+               ipString, ntohs(server->sin6_port));
+
+        printPDU(pduBuffer, pduLen);
+	    
 	}
 }
 
@@ -95,21 +109,19 @@ int readFromStdin(char * buffer)
 	return inputLen;
 }
 
-int checkArgs(int argc, char * argv[])
-{
-
+int checkArgs(int argc, char * argv[]){
     int portNumber = 0;
-	
+    double errorRate = 0;
     /* check command line arguments  */
 	
 	if (argc != 4)
 	{
-		printf("usage: %s host-name port-number \n", argv[0]);
+		printf("usage: %s error-rate host-name port-number \n", argv[0]);
 		exit(1);
 	}
+
+	portNumber = atoi(argv[3]);
 	
-	portNumber = atoi(argv[2]);
-		
 	return portNumber;
 }
 
