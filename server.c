@@ -43,8 +43,7 @@ void processClient(int socketNum)
 	int clientAddrLen = sizeof(client);	
 	
 	buffer[0] = '\0';
-	while (buffer[0] != '.')
-	{
+	while (buffer[0] != '.'){
 		dataLen = safeRecvfrom(socketNum, buffer, MAXBUF, 0, (struct sockaddr *) &client, &clientAddrLen);
 	
 		printf("Received message from client with ");

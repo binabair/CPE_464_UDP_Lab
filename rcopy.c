@@ -30,8 +30,11 @@ int main (int argc, char *argv[])
 	int socketNum = 0;				
 	struct sockaddr_in6 server;		// Supports 4 and 6 but requires IPv6 struct
 	int portNumber = 0;
+	double errorRate = 0;
 	
 	portNumber = checkArgs(argc, argv);
+
+	errorRate = atof(argv[1]);
 	
 	socketNum = setupUdpClientToServer(&server, argv[1], portNumber);
 	
@@ -99,7 +102,7 @@ int checkArgs(int argc, char * argv[])
 	
     /* check command line arguments  */
 	
-	if (argc != 3)
+	if (argc != 4)
 	{
 		printf("usage: %s host-name port-number \n", argv[0]);
 		exit(1);
