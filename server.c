@@ -14,12 +14,15 @@
 #include "networks.h"
 #include "safeUtil.h"
 #include "createPDU.h"
+#include "cpe464.h"
+
 
 #define MAXBUF 80
 #define MAXPDU 1500
 
 void processClient(int socketNum);
 int checkArgs(int argc, char *argv[]);
+void checkErrorRate(double errorRate);
 
 int main ( int argc, char *argv[]  )
 { 
@@ -28,7 +31,10 @@ int main ( int argc, char *argv[]  )
 	double errorRate = 0;
 
 	portNumber = checkArgs(argc, argv);
+
 	errorRate = atof(argv[1]);
+	checkErrorRate(errorRate);
+	sendtoErr_init(errorRate, DROP_ON, FLIP_ON, DEBUG_ON, RSEED_OFF);
 		
 	socketNum = udpServerSetup(portNumber);
 
@@ -55,12 +61,12 @@ void processClient(int socketNum)
 
 		printPDU(buffer, dataLen);
 
+		// Send the exact same PDU back to rcopy
+        safeSendto(socketNum, buffer, dataLen, 0, (struct sockaddr *) &client, clientAddrLen);
+
 		if(buffer[7] == '.'){
 			break;
 		}
-
-		// Send the exact same PDU back to rcopy
-        safeSendto(socketNum, buffer, dataLen, 0, (struct sockaddr *) &client, clientAddrLen);
 	}
 }
 
@@ -71,7 +77,7 @@ int checkArgs(int argc, char *argv[])
 	
 	if (argc < 2 ||argc > 3)
 	{
-		fprintf(stderr, "Usage %s [optional port number]\n", argv[0]);
+		fprintf(stderr, "Usage: %s error-rate [optional port number]\n", argv[0]);
 		exit(-1);
 	}
 	
@@ -81,6 +87,15 @@ int checkArgs(int argc, char *argv[])
 	}
 	
 	return portNumber;
+}
+
+void checkErrorRate(double errorRate)
+{
+    if (errorRate < 0 || errorRate >= 1)
+    {
+        fprintf(stderr, "Error rate must be >= 0 and < 1\n");
+        exit(1);
+    }
 }
 
 

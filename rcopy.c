@@ -19,6 +19,7 @@
 #include "networks.h"
 #include "safeUtil.h"
 #include "createPDU.h"
+#include "cpe464.h"
 
 #define MAXBUF 80
 #define MAXPDU 1500
@@ -26,6 +27,7 @@
 void talkToServer(int socketNum, struct sockaddr_in6 * server);
 int readFromStdin(char * buffer);
 int checkArgs(int argc, char * argv[]);
+void checkErrorRate(double errorRate);
 
 int main (int argc, char *argv[])
  {
@@ -37,6 +39,8 @@ int main (int argc, char *argv[])
 	portNumber = checkArgs(argc, argv);
 
 	errorRate = atof(argv[1]);
+	checkErrorRate(errorRate);
+	sendtoErr_init(errorRate, DROP_ON, FLIP_ON, DEBUG_ON, RSEED_OFF);
 	
 	socketNum = setupUdpClientToServer(&server, argv[2], portNumber);
 	
@@ -111,7 +115,6 @@ int readFromStdin(char * buffer)
 
 int checkArgs(int argc, char * argv[]){
     int portNumber = 0;
-    double errorRate = 0;
     /* check command line arguments  */
 	
 	if (argc != 4)
@@ -121,8 +124,17 @@ int checkArgs(int argc, char * argv[]){
 	}
 
 	portNumber = atoi(argv[3]);
-	
+
 	return portNumber;
+}
+
+void checkErrorRate(double errorRate)
+{
+    if (errorRate < 0 || errorRate >= 1)
+    {
+        fprintf(stderr, "Error rate must be >= 0 and < 1\n");
+        exit(1);
+    }
 }
 
 

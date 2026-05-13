@@ -40,6 +40,16 @@ void printPDU(uint8_t *pduBuffer, int pduLen){
     uint16_t checksum;
     uint8_t flag;
     uint8_t *payload;
+    int payloadLen = pduLen - 7;
+
+    if(pduLen < 7){
+        printf("ERROR: PDU too short\n");
+        return;
+    }
+
+    if (in_cksum((unsigned short *)pduBuffer, pduLen) != 0){
+        printf("ERROR: PDU is corrupted - checksum failed\n");
+    }
 
     memcpy(&seqNum, pduBuffer, sizeof(seqNum));
     seqNum = ntohl(seqNum); // convert back to host order
@@ -52,5 +62,6 @@ void printPDU(uint8_t *pduBuffer, int pduLen){
     printf("Sequence Number: %u\n", seqNum);
     printf("Checksum: %u\n", checksum);
     printf("Flag: %u\n", flag);
-    printf("Payload: %.*s\n", pduLen - 7, payload); // print payload as string
+    printf("Payload Length: %d\n", payloadLen);
+    printf("Payload: %.*s\n", payloadLen, payload);
 }
